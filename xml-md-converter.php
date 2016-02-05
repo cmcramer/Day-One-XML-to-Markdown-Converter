@@ -31,10 +31,10 @@ define('HEADER_IS_FILE_NAME', false);
 
 $xmlfiles = scandir($path.$dirsource);
 //print_r($xmlfiles);
+$fileCount = 0;
 foreach ($xmlfiles as $file) {
 	$fileparts = pathinfo($file);
 	$fullfile = $path.$dirsource.'/'.$file;
-	$fileCount = 0;
 	//print_r($fullfile);
 	if (file_exists($fullfile) && $fileparts['extension'] == 'xml') {
 		//load xml
@@ -121,7 +121,7 @@ function markdownFile($arrXml, $fulldestpath, $headerEnclosedBy) {
 	$content = $arrXml['Entry Text'];
 	//try to get headline
 	$headerText = '';
-	if (substr($content, 0, 1) == $headerEnclosedBy[0]) {
+	if (count($headerEnclosedBy) > 0 && substr($content, 0, 1) == $headerEnclosedBy[0]) {
 		$endPos = strpos($content, $headerEnclosedBy[1]);
 		$headerText = substr($content, 1, $endPos-1);
 		//set file name to header text
@@ -131,7 +131,11 @@ function markdownFile($arrXml, $fulldestpath, $headerEnclosedBy) {
 		$content = trim(substr($content, $endPos+1));
 	}
 	
-	$strTags = implode(', ', $arrXml['Tags']);
+	$strTags = '';
+	if (count($arrXml['Tags']) > 0 ) {
+		$strTags = implode(', ', $arrXml['Tags']);
+		$strTags = "_{$strTags}_";
+	}
 	
 // 		echo '<h2>Date Raw: ' .$arrXml['Creation Date'] . '</h2>';
 // 		echo '<h2>Filename: ' .$mdFilename . '</h2>';
@@ -142,24 +146,92 @@ function markdownFile($arrXml, $fulldestpath, $headerEnclosedBy) {
 // 		echo '<p>String: ' .nl2br($content) . '</p>';
 	
 	$headerLevel = TITLE_HEADER_LEVEL;
-	$visibility = number_format($arrXml['Weather']['Visibility KM'], 1);
+	
+	//Initialize $niceDate
 	$niceDate = niceDate($arrXml['Creation Date'], NICE_DATE_FORMAT);
+	
+	//Initialize $starred
 	$starred = '';
 	if ($arrXml['Starred'] == 1) {
 		$starred = '![Star](images/star.png)';
 	}
+	
+	//Location
+	$placename = '';
+	if (isset($arrXml['Location']['Place Name']) && $arrXml['Location']['Place Name'] != '') {
+		$placename = "{$arrXml['Location']['Place Name']},";
+	}
+	$locality = '';
+	if (isset($arrXml['Location']['Locality']) && $arrXml['Location']['Locality'] != '') {
+		$locality = "{$arrXml['Location']['Locality']},";
+	}
+	$area = '';
+	if (isset($arrXml['Location']['Administrative Area']) && $arrXml['Location']['Administrative Area'] != '') {
+		$area = "{$arrXml['Location']['Administrative Area']},";
+	}
+	$country = '';
+	if (isset($arrXml['Location']['Country']) && $arrXml['Location']['Country'] != '') {
+		$country = "{$arrXml['Location']['Country']},";
+	}
+	$longitude = '';
+	if (isset($arrXml['Location']['Longitude']) && $arrXml['Location']['Longitude'] != '') {
+		$longitude = "Longitude: {$arrXml['Location']['Longitude']}  ";
+	}
+	$latitude = '';
+	if (isset($arrXml['Location']['Latitude']) && $arrXml['Location']['Latitude'] != '') {
+		$latitude = "Latitude: {$arrXml['Location']['Latitude']}  ";
+	}
+	//Weather
+	$tempF = '';
+	if (isset($arrXml['Weather']['Fahrenheit']) && $arrXml['Weather']['Fahrenheit'] != '') {
+		$tempF = "{$arrXml['Weather']['Fahrenheit']}F/";
+	}
+	$tempC = '';
+	if (isset($arrXml['Weather']['Celsius']) && $arrXml['Weather']['Celsius'] != '') {
+		$tempC = "{$arrXml['Weather']['Celsius']}C";
+	}
+	$weatherDesc = '';
+	if (isset($arrXml['Weather']['Description']) && $arrXml['Weather']['Description'] != '') {
+		$weatherDesc = "{$arrXml['Weather']['Description']}";
+	}
+	$sunrise = '';
+	if (isset($arrXml['Weather']['Sunrise Date']) && $arrXml['Weather']['Sunrise Date'] != '') {
+		$sunrise = "Sunrise: {$arrXml['Weather']['Sunrise Date']}  ";
+	}
+	$sunset = '';
+	if (isset($arrXml['Weather']['Sunset Date']) && $arrXml['Weather']['Sunset Date'] != '') {
+		$sunset = "Sunset: {$arrXml['Weather']['Sunset Date']}";
+	}
+	$pressure = '';
+	if (isset($arrXml['Weather']['Pressure MB']) && $arrXml['Weather']['Pressure MB'] != '') {
+		$pressure = "Pressure: {$arrXml['Weather']['Pressure MB']}MB  ";
+	}
+	$humidity = '';
+	if (isset($arrXml['Weather']['Relative Humidity']) && $arrXml['Weather']['Relative Humidity'] != '') {
+		$humidity = "Humidity: {$arrXml['Weather']['Relative Humidity']}%";
+	}
+	$visibility = '';
+	if (isset($arrXml['Weather']['Visibility KM']) && $arrXml['Weather']['Visibility KM'] != '') {
+		$visibility = 'Visibility: ' . number_format($arrXml['Weather']['Visibility KM'], 1) . 'KM  ';
+	}
+	$windchill = '';
+	if (isset($arrXml['Weather']['Wind Chill Celsius']) && $arrXml['Weather']['Wind Chill Celsius'] != '') {
+		$windchill = "Wind Chill: {$arrXml['Weather']['Wind Chill Celsius']}C";
+	}
+	
+	
 	$strMd = <<<EOT
 {$headerLevel}{$headerText}
-{$starred} *{$niceDate}* _{$strTags}_
+{$starred} *{$niceDate}* {$strTags}
 
 {$content}
 
-	{$arrXml['Location']['Place Name']}, {$arrXml['Location']['Locality']}, {$arrXml['Location']['Administrative Area']}, {$arrXml['Location']['Country']} {$arrXml['Weather']['Fahrenheit']}F/{$arrXml['Weather']['Celsius']} {$arrXml['Weather']['Description']}
+	{$placename} {$locality} {$area} {$country} {$tempF}{$tempC} {$weatherDesc}
 	
-	Latitude: {$arrXml['Location']['Latitude']} Longitude: {$arrXml['Location']['Longitude']}
-	Sunrise: {$arrXml['Weather']['Sunrise Date']}   Sunset: {$arrXml['Weather']['Sunset Date']}
-	Pressure: {$arrXml['Weather']['Pressure MB']}MB Humidity: {$arrXml['Weather']['Relative Humidity']}
-	Visibility: {$visibility}KM   Windchill: {$arrXml['Weather']['Wind Chill Celsius']}C
+	{$longitude} {$latitude}
+	{$sunrise} {$sunset}
+	{$pressure} {$humidity}
+	{$visibility} {$windchill}
 	
 	Creation Date UTC: {$arrXml['Creation Date']}
 	UUID: {$arrXml['UUID']}
