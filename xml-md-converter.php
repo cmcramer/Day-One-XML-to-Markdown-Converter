@@ -10,7 +10,8 @@
      
 <?php 
 /**
- * 
+ * set up in hosts as day1x.dev
+ *
  * Notes:
  * 	- this only works for the original DayOne app which stored entries as xml files
  * 	- extension of entries must be changed from .doentry to .xml, use cli or automater
@@ -20,9 +21,10 @@
 
 $path = __dir__.'/';
 //relative path to your php file where the DayOne Entries are located.
-$dirsource = 'Journal_dayone/entries';
+$dirsource = 'entries';
 $dirdest = 'md-converted';
 $headerEnclosedBy = array('[',']');
+$entryExt = 'doentry';
 
 define('NICE_DATE_FORMAT', 'H:i j M Y');
 define('FILENAME_DATE_FORMAT', 'Y-m-d_His');
@@ -36,7 +38,7 @@ foreach ($xmlfiles as $file) {
 	$fileparts = pathinfo($file);
 	$fullfile = $path.$dirsource.'/'.$file;
 	//print_r($fullfile);
-	if (file_exists($fullfile) && $fileparts['extension'] == 'xml') {
+	if (file_exists($fullfile) && $fileparts['extension'] == $entryExt) {
 		//load xml
 		$xml = simplexml_load_file($fullfile);
 		$arrXml = parseDict($xml->dict);
@@ -159,19 +161,19 @@ function markdownFile($arrXml, $fulldestpath, $headerEnclosedBy) {
 	//Location
 	$placename = '';
 	if (isset($arrXml['Location']['Place Name']) && $arrXml['Location']['Place Name'] != '') {
-		$placename = "{$arrXml['Location']['Place Name']},";
+		$placename = "{$arrXml['Location']['Place Name']}, ";
 	}
 	$locality = '';
 	if (isset($arrXml['Location']['Locality']) && $arrXml['Location']['Locality'] != '') {
-		$locality = "{$arrXml['Location']['Locality']},";
+		$locality = "{$arrXml['Location']['Locality']}, ";
 	}
 	$area = '';
 	if (isset($arrXml['Location']['Administrative Area']) && $arrXml['Location']['Administrative Area'] != '') {
-		$area = "{$arrXml['Location']['Administrative Area']},";
+		$area = "{$arrXml['Location']['Administrative Area']}, ";
 	}
 	$country = '';
 	if (isset($arrXml['Location']['Country']) && $arrXml['Location']['Country'] != '') {
-		$country = "{$arrXml['Location']['Country']},";
+		$country = "{$arrXml['Location']['Country']},  ";
 	}
 	$longitude = '';
 	if (isset($arrXml['Location']['Longitude']) && $arrXml['Location']['Longitude'] != '') {
@@ -188,7 +190,7 @@ function markdownFile($arrXml, $fulldestpath, $headerEnclosedBy) {
 	}
 	$tempC = '';
 	if (isset($arrXml['Weather']['Celsius']) && $arrXml['Weather']['Celsius'] != '') {
-		$tempC = "{$arrXml['Weather']['Celsius']}C";
+		$tempC = "{$arrXml['Weather']['Celsius']}C  ";
 	}
 	$weatherDesc = '';
 	if (isset($arrXml['Weather']['Description']) && $arrXml['Weather']['Description'] != '') {
@@ -219,24 +221,38 @@ function markdownFile($arrXml, $fulldestpath, $headerEnclosedBy) {
 		$windchill = "Wind Chill: {$arrXml['Weather']['Wind Chill Celsius']}C";
 	}
 	
-	
+	$locationWeatherSummary = "{$placename}{$locality}{$area}{$country}{$tempF}{$tempC}{$weatherDesc}";
+	if ($locationWeatherSummary != '') {
+		$locationWeatherSummary = "\t{$locationWeatherSummary}\n\t";
+	}
+	$longLatSummary = "{$longitude}{$latitude}";
+	if ($longLatSummary != '') {
+		$longLatSummary = "\n\t{$longLatSummary}";
+	}
+	$sunSummary = "{$sunrise}{$sunset}";
+	if ($sunSummary != '') {
+		$sunSummary = "\n\t{$sunSummary}";
+	}
+	$pressureHumiditySummary = "{$pressure}{$humidity}";
+	if ($pressureHumiditySummary != '') {
+		$pressureHumiditySummary = "\n\t{$pressureHumiditySummary}";
+	}
+	$visibilityWindchillSummary = "{$visibility}{$windchill}";
+	if ($visibilityWindchillSummary != '') {
+		$visibilityWindchillSummary = "\n\t{$visibilityWindchillSummary}";
+	}
 	$strMd = <<<EOT
 {$headerLevel}{$headerText}
 {$starred} *{$niceDate}* {$strTags}
 
 {$content}
 
-	{$placename} {$locality} {$area} {$country} {$tempF}{$tempC} {$weatherDesc}
-	
-	{$longitude} {$latitude}
-	{$sunrise} {$sunset}
-	{$pressure} {$humidity}
-	{$visibility} {$windchill}
+{$locationWeatherSummary}{$longLatSummary}{$sunSummary}{$pressureHumiditySummary}{$visibilityWindchillSummary}
 	
 	Creation Date UTC: {$arrXml['Creation Date']}
 	UUID: {$arrXml['UUID']}
 	
-		
+	
 EOT;
 	
 	//file path
