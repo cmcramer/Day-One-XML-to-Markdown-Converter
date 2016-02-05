@@ -10,10 +10,16 @@
      
 <?php 
 /**
- * Destination folder  must have write permissions
+ * 
+ * Notes:
+ * 	- this only works for the original DayOne app which stored entries as xml files
+ * 	- extension of entries must be changed from .doentry to .xml, use cli or automater
+ * 	- Destination folder  must have write permissions
+ * 
  */
 
 $path = __dir__.'/';
+//relative path to your php file where the DayOne Entries are located.
 $dirsource = 'Journal_dayone/entries';
 $dirdest = 'md-converted';
 $headerEnclosedBy = array('[',']');
